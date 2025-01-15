@@ -7,6 +7,7 @@
       'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`
     }"
   >
+    <!-- Without this element, scrolling will be triggered when moving tiles -->
     <div
       :style="{
         'grid-column': `1 / ${currentColumnsAmount + 1}`,
@@ -27,10 +28,12 @@
 </template>
 
 <script setup lang="ts">
-import { useTemplateRef, onMounted, ref, reactive } from "vue";
-import type Tile from "@/components/Tile";
-import TileMap, { type TileMapItem } from "@/components/TileMap";
 import TileView from "@/components/TileView.vue";
+
+import { useTemplateRef, onMounted, ref, reactive } from "vue";
+
+import { type Tile } from "@/components/Tile";
+import { TileMap, type TileMapItem } from "@/components/TileMap";
 
 interface Props {
   columnWidth: number;
@@ -90,18 +93,21 @@ function updatePosition() {
   let visibleRows = getVisibleRowsRange();
 
   if (
-    renderedRowsRange.bottom - visibleRows.bottom < 1 ||
-    visibleRows.top - renderedRowsRange.top < 1
-  ) {
-    console.log("update position");
+    !(
+      renderedRowsRange.bottom - visibleRows.bottom < 1 ||
+      visibleRows.top - renderedRowsRange.top < 1
+    )
+  )
+    return;
 
-    updateGrid();
-    hideAllViews();
+  console.log("update position");
 
-    visibleRows = expandRowsRange(visibleRows.top, visibleRows.bottom);
+  updateGrid();
+  hideAllViews();
 
-    showViewsInRange(visibleRows.top, visibleRows.bottom);
-  }
+  visibleRows = expandRowsRange(visibleRows.top, visibleRows.bottom);
+
+  showViewsInRange(visibleRows.top, visibleRows.bottom);
 }
 
 function expandRowsRange(top: number, bottom: number) {

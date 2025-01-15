@@ -6,7 +6,7 @@ export interface TileMapItem {
   data: any;
 }
 
-export default class TileMap {
+export class TileMap {
   map: Array<TileMapItem> = [];
   width: number;
 

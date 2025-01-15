@@ -1,4 +1,4 @@
-export default interface Tile {
+export interface Tile {
   width: number;
   height: number;
   data: any;

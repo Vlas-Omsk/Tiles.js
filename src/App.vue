@@ -20,16 +20,16 @@
 
 <script setup lang="ts">
 import Tiles from "@/components/Tiles.vue";
-import type Tile from "@/components/Tile";
+import { type Tile } from "@/components/Tile";
 
 const origTiles: Array<Tile> = [
-  {
-    width: 1920,
-    height: 1080,
-    data: {
-      color: "#ff0000"
-    }
-  },
+  // {
+  //   width: 1920,
+  //   height: 1080,
+  //   data: {
+  //     color: "#ff0000"
+  //   }
+  // },
   {
     width: 1080,
     height: 1920,
@@ -44,13 +44,13 @@ const origTiles: Array<Tile> = [
       color: "#0000ff"
     }
   },
-  {
-    width: 4000,
-    height: 1080,
-    data: {
-      color: "#ff0000"
-    }
-  },
+  // {
+  //   width: 4000,
+  //   height: 1080,
+  //   data: {
+  //     color: "#ff0000"
+  //   }
+  // },
   {
     width: 1080,
     height: 1080,
