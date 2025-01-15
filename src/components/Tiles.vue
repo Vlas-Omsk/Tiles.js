@@ -1,39 +1,17 @@
-<template>
-  <div
-    ref="root"
-    class="root"
-    :style="{
-      'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
-      'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`
-    }"
-  >
-    <!-- Without this element, scrolling will be triggered when moving tiles -->
-    <div
-      :style="{
-        'grid-column': `1 / ${currentColumnsAmount + 1}`,
-        'grid-row': `1 / ${currentRowsAmount + 1}`
-      }"
-    ></div>
-
-    <TileView
-      v-for="view of viewsPool"
-      :visible="view.visible"
-      :data="view.data"
-    >
-      <template #default="data">
-        <slot v-bind="data"></slot>
-      </template>
-    </TileView>
-  </div>
-</template>
-
 <script setup lang="ts">
 import TileView from "@/components/TileView.vue";
 
-import { useTemplateRef, onMounted, ref, reactive } from "vue";
+import {
+  useTemplateRef,
+  onMounted,
+  reactive,
+  shallowRef,
+  ref,
+  nextTick
+} from "vue";
 
-import { type Tile } from "@/components/Tile";
-import { TileMap, type TileMapItem } from "@/components/TileMap";
+import { type Tile } from "@/tile/Tile";
+import { TileMap, type TileMapItem } from "@/tile/TileMap";
 
 interface Props {
   columnWidth: number;
@@ -50,9 +28,11 @@ const props = defineProps<Props>();
 
 const root = useTemplateRef("root");
 
-let currentColumnsAmount = ref(0);
+const currentColumnsAmount = shallowRef(0);
+const currentRowsAmount = shallowRef(0);
 let currentColumnWidth = 0;
-let currentRowsAmount = ref(0);
+
+const GAP = 12;
 
 let map: TileMap;
 
@@ -60,7 +40,7 @@ let columnsFreeRows: Array<number> = [];
 let nextColumn = 0;
 let nextItemIndex = 0;
 
-const viewsPool = reactive<View[]>([]);
+const viewsPool = ref<View[]>([]);
 let hiddenViews: View[] = [];
 let visibleViews: View[] = [];
 
@@ -123,8 +103,8 @@ function expandRowsRange(top: number, bottom: number) {
 }
 
 function getVisibleRowsRange() {
-  let top = root.value!.scrollTop;
-  let bottom = top + window.innerHeight;
+  const top = root.value!.scrollTop;
+  const bottom = top + window.innerHeight;
 
   return {
     top: Math.floor(top / props.rowHeight),
@@ -133,7 +113,7 @@ function getVisibleRowsRange() {
 }
 
 function hideAllViews() {
-  for (let view of visibleViews) {
+  for (const view of visibleViews) {
     view.visible = false;
   }
 
@@ -150,7 +130,7 @@ function showViewsInRange(topRow: number, bottomRow: number) {
 
   const tiles = map.getRows(topRow, bottomRow - topRow);
 
-  for (let tile of tiles) {
+  for (const tile of tiles) {
     showView(tile);
   }
 }
@@ -158,13 +138,13 @@ function showViewsInRange(topRow: number, bottomRow: number) {
 function showView(data: TileMapItem) {
   let view = hiddenViews.pop();
 
-  if (view == null) {
+  if (!view) {
     view = reactive({
       visible: true,
       data
     });
 
-    viewsPool.push(view);
+    viewsPool.value.push(view);
   } else {
     view.data = data;
     view.visible = true;
@@ -181,13 +161,9 @@ function resetGrid() {
 }
 
 function updateGrid() {
-  while (true) {
-    if (nextItemIndex >= props.items.length) return;
-
+  while (nextItemIndex < props.items.length) {
     const item = props.items[nextItemIndex];
-
     putItem(item);
-
     nextItemIndex++;
   }
 }
@@ -219,8 +195,10 @@ function putItem(item: Tile) {
 }
 
 function getSpan(width: number, height: number) {
-  let columns;
-  let rows;
+  let columns = 1;
+  let rows = Math.round(
+    ((height / width) * currentColumnWidth) / props.rowHeight
+  );
 
   if (width > height) {
     columns = Math.min(
@@ -230,14 +208,11 @@ function getSpan(width: number, height: number) {
     rows = Math.round(
       ((height / width) * (columns * currentColumnWidth)) / props.rowHeight
     );
-  } else {
-    columns = 1;
-    rows = Math.round(
-      ((height / width) * currentColumnWidth) / props.rowHeight
-    );
   }
 
   rows = Math.max(rows, 1);
+
+  console.log(rows, columns);
 
   return {
     columns,
@@ -247,7 +222,9 @@ function getSpan(width: number, height: number) {
 
 let updateSizeTimeout: number;
 
-onMounted(() => {
+onMounted(async () => {
+  await nextTick();
+
   updateSize();
 
   window.addEventListener("resize", function () {
@@ -260,9 +237,39 @@ onMounted(() => {
 });
 </script>
 
-<style lang="scss" scoped>
+<template>
+  <div
+    ref="root"
+    class="root"
+    :style="{
+      'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
+      'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`
+    }"
+  >
+    <!-- Without this element, scrolling will be triggered when moving tiles -->
+    <div
+      :style="{
+        'grid-column': `1 / ${currentColumnsAmount + 1}`,
+        'grid-row': `1 / ${currentRowsAmount + 1}`
+      }"
+    ></div>
+
+    <TileView
+      v-for="view of viewsPool"
+      :visible="view.visible"
+      :data="view.data"
+    >
+      <template #default="data">
+        <slot v-bind="data"></slot>
+      </template>
+    </TileView>
+  </div>
+</template>
+
+<style lang="css" scoped>
 .root {
   display: grid;
+  gap: 12px;
   overflow: auto;
 }
 </style>

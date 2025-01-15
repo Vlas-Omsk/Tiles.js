@@ -20,7 +20,7 @@
 
 <script setup lang="ts">
 import Tiles from "@/components/Tiles.vue";
-import { type Tile } from "@/components/Tile";
+import { type Tile } from "@/tile/Tile";
 
 const origTiles: Array<Tile> = [
   // {

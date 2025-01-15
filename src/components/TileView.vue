@@ -11,7 +11,7 @@
 </template>
 
 <script setup lang="ts">
-import type { TileMapItem } from "@/components/TileMap";
+import type { TileMapItem } from "@/tile/TileMap";
 
 interface Props {
   visible: boolean;
