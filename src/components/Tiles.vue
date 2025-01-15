@@ -269,7 +269,6 @@ onMounted(async () => {
 <style lang="css" scoped>
 .root {
   display: grid;
-  gap: 12px;
   overflow: auto;
 }
 </style>
