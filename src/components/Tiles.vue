@@ -32,8 +32,6 @@ const currentColumnsAmount = shallowRef(0);
 const currentRowsAmount = shallowRef(0);
 let currentColumnWidth = 0;
 
-const GAP = 12;
-
 let map: TileMap;
 
 let columnsFreeRows: Array<number> = [];

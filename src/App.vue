@@ -1,23 +1,3 @@
-<template>
-  <main class="main">
-    <Tiles
-      :column-width="220"
-      :row-height="10"
-      :items="tiles"
-      style="height: 100vh"
-    >
-      <template #default="data">
-        <div
-          style="display: flex; height: 100%"
-          :style="{ 'background-color': data.color }"
-        >
-          {{ data }}
-        </div>
-      </template>
-    </Tiles>
-  </main>
-</template>
-
 <script setup lang="ts">
 import Tiles from "@/components/Tiles.vue";
 import { type Tile } from "@/tile/Tile";
@@ -75,6 +55,26 @@ for (let i = 0; i <= 300; i++) {
   }
 }
 </script>
+
+<template>
+  <main class="main">
+    <Tiles
+      :column-width="220"
+      :row-height="10"
+      :items="tiles"
+      style="height: 100vh"
+    >
+      <template #default="data">
+        <div
+          style="display: flex; height: 100%"
+          :style="{ 'background-color': data.color }"
+        >
+          {{ data }}
+        </div>
+      </template>
+    </Tiles>
+  </main>
+</template>
 
 <style lang="scss" scoped>
 .main {

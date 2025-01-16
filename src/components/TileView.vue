@@ -1,3 +1,14 @@
+<script setup lang="ts">
+import type { TileMapItem } from "@/tile/TileMap";
+
+interface Props {
+  visible: boolean;
+  data: TileMapItem;
+}
+
+defineProps<Props>();
+</script>
+
 <template>
   <div
     v-if="visible"
@@ -9,14 +20,3 @@
     <slot v-bind="data.data"></slot>
   </div>
 </template>
-
-<script setup lang="ts">
-import type { TileMapItem } from "@/tile/TileMap";
-
-interface Props {
-  visible: boolean;
-  data: TileMapItem;
-}
-
-defineProps<Props>();
-</script>
