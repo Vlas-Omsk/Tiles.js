@@ -9,7 +9,8 @@ import {
   ref,
   nextTick,
   watch,
-  computed
+  computed,
+  onBeforeUnmount
 } from "vue";
 
 import { type Tile } from "@/tile/Tile";
@@ -34,42 +35,54 @@ const props = withDefaults(defineProps<Props>(), {
   rowGap: 0
 });
 
+const emit = defineEmits(["onScrollNearEnd"]);
+
 const root = useTemplateRef("root");
 
 const currentColumnsAmount = shallowRef(0);
 const currentRowsAmount = shallowRef(0);
 
+const currentRowHeight = computed(() => props.rowHeight + props.rowGap * 1);
+
 const grid = new TileGrid();
+
+grid.append(...props.items);
 
 const viewsPool = ref<View[]>([]);
 let hiddenViews: View[] = [];
 let visibleViews: View[] = [];
 
 let renderedRowsRange = { top: 0, bottom: 0 };
-
-let nextItemIndex = 0;
-
-const realRowHeight = computed(() => props.rowHeight + props.rowGap * 1);
+let renderedGap = { columnGap: 0, rowGap: 0 };
 
 function updateSize() {
-  const previousColumnsAmount = currentColumnsAmount.value;
+  if (root.value == null) return;
 
-  const rect = root.value!.getBoundingClientRect();
+  const rect = root.value.getBoundingClientRect();
 
-  currentColumnsAmount.value = Math.floor(rect.width / props.columnWidth);
+  const newColumnsAmount = Math.floor(rect.width / props.columnWidth);
+  const newColumnWidth = rect.width / newColumnsAmount;
 
-  let currentColumnWidth = rect.width / currentColumnsAmount.value;
-
-  if (previousColumnsAmount === currentColumnsAmount.value) return;
+  if (
+    props.columnGap === renderedGap.columnGap &&
+    props.rowGap === renderedGap.rowGap &&
+    newColumnsAmount === currentColumnsAmount.value
+  )
+    return;
 
   console.log("update size");
+
+  currentColumnsAmount.value = newColumnsAmount;
+
+  renderedGap.columnGap = props.columnGap;
+  renderedGap.rowGap = props.rowGap;
 
   hideAllViews();
 
   grid.resize(
     currentColumnsAmount.value,
-    currentColumnWidth,
-    realRowHeight.value
+    newColumnWidth,
+    currentRowHeight.value
   );
 
   currentRowsAmount.value = grid.map.rowsAmount;
@@ -85,7 +98,16 @@ function updateSize() {
 }
 
 function updatePosition() {
+  if (root.value == null) return;
+
   let visibleRowsRange = getVisibleRowsRange();
+
+  if (
+    root.value.scrollHeight - root.value.clientHeight - root.value.scrollTop <
+    root.value.clientHeight
+  ) {
+    emit("onScrollNearEnd");
+  }
 
   if (
     !(
@@ -121,11 +143,11 @@ function expandRowsRange(top: number, bottom: number) {
 
 function getVisibleRowsRange() {
   const top = root.value!.scrollTop;
-  const bottom = top + window.innerHeight;
+  const bottom = top + root.value!.clientHeight;
 
   return {
-    top: Math.floor(top / realRowHeight.value),
-    bottom: Math.ceil(bottom / realRowHeight.value)
+    top: Math.floor(top / currentRowHeight.value),
+    bottom: Math.ceil(bottom / currentRowHeight.value)
   };
 }
 
@@ -170,38 +192,63 @@ function showView(data: TileMapItem) {
   visibleViews.push(view);
 }
 
-grid.append(...props.items);
-
-currentRowsAmount.value = grid.map.rowsAmount;
-
 let updateSizeTimeout: number;
+
+function onWindowResize() {
+  clearTimeout(updateSizeTimeout);
+  updateSizeTimeout = setTimeout(updateSize, 100);
+}
+
+function onRootScroll() {
+  updatePosition();
+}
 
 onMounted(async () => {
   await nextTick();
 
   updateSize();
 
-  window.addEventListener("resize", function () {
-    clearTimeout(updateSizeTimeout);
-    updateSizeTimeout = setTimeout(updateSize, 100);
-  });
-  root.value!.addEventListener("scroll", function () {
-    updatePosition();
-  });
+  window.addEventListener("resize", onWindowResize);
+  root.value!.addEventListener("scroll", onRootScroll);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", onWindowResize);
+  root.value!.removeEventListener("scroll", onRootScroll);
 });
 
 watch(
   () => props.items,
   (newValue) => {
-    for (; nextItemIndex < newValue.length; nextItemIndex++) {
-      const item = newValue[nextItemIndex];
+    hideAllViews();
 
-      grid.append(item);
+    grid.clear();
+    grid.append(...newValue);
 
-      currentRowsAmount.value = grid.map.rowsAmount;
-    }
+    currentRowsAmount.value = grid.map.rowsAmount;
+
+    let visibleRowsRange = getVisibleRowsRange();
+
+    visibleRowsRange = expandRowsRange(
+      visibleRowsRange.top,
+      visibleRowsRange.bottom
+    );
+
+    showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
   },
-  { deep: true }
+  {
+    deep: true
+  }
+);
+
+watch(
+  () => [props.columnWidth, props.columnGap, props.rowHeight, props.rowHeight],
+  () => {
+    updateSize();
+  },
+  {
+    flush: "post"
+  }
 );
 </script>
 

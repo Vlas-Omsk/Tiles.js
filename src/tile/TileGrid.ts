@@ -33,6 +33,12 @@ export class TileGrid {
     }
   }
 
+  clear() {
+    this.#tiles = [];
+
+    this.#reset();
+  }
+
   #reset() {
     this.#map = new TileMap(this.#columnsAmount);
     this.#columnsFreeRows = [];
@@ -87,10 +93,8 @@ export class TileGrid {
   }
 
   #measureTile(width: number, height: number) {
-    let columns = 1;
-    let rows = Math.round(
-      ((height / width) * this.#columnWidth) / this.#rowHeight
-    );
+    let columns;
+    let rows;
 
     if (width > height) {
       columns = Math.min(
@@ -99,6 +103,11 @@ export class TileGrid {
       );
       rows = Math.round(
         ((height / width) * (columns * this.#columnWidth)) / this.#rowHeight
+      );
+    } else {
+      columns = 1;
+      rows = Math.round(
+        ((height / width) * this.#columnWidth) / this.#rowHeight
       );
     }
 

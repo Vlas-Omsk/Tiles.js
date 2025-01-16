@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Tiles from "@/components/Tiles.vue";
 import { type Tile } from "@/tile/Tile";
+import { reactive } from "vue";
 
 const origTiles: Array<Tile> = [
   {
@@ -40,9 +41,15 @@ const origTiles: Array<Tile> = [
   }
 ];
 
-const tiles: Array<Tile> = [];
+const tiles = reactive<Tile[]>([]);
 
-for (let i = 0; i <= 300; i++) {
+let i = 0;
+
+function addTiles() {
+  i++;
+
+  if (i > 300) return;
+
   for (let tile of origTiles) {
     const newTile = Object.assign({}, tile);
 
@@ -53,7 +60,11 @@ for (let i = 0; i <= 300; i++) {
 
     tiles.push(newTile);
   }
+
+  //setTimeout(addTiles, 1000);
 }
+
+addTiles();
 </script>
 
 <template>
@@ -61,10 +72,9 @@ for (let i = 0; i <= 300; i++) {
     <Tiles
       :column-width="220"
       :row-height="10"
-      :row-gap="30"
-      :column-gap="10"
       :items="tiles"
       style="height: 100vh"
+      @on-scroll-near-end="addTiles"
     >
       <template #default="data">
         <div
