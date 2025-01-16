@@ -46,7 +46,7 @@ const currentRowHeight = computed(() => props.rowHeight + props.rowGap * 1);
 
 const grid = new TileGrid();
 
-grid.append(...props.items);
+grid.push(...props.items);
 
 const viewsPool = ref<View[]>([]);
 let hiddenViews: View[] = [];
@@ -220,10 +220,12 @@ onBeforeUnmount(() => {
 watch(
   () => props.items,
   (newValue) => {
+    // TODO: push only new items and dont rebuild all grid
+
     hideAllViews();
 
     grid.clear();
-    grid.append(...newValue);
+    grid.push(...newValue);
 
     currentRowsAmount.value = grid.map.rowsAmount;
 

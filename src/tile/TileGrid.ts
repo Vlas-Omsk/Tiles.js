@@ -25,12 +25,18 @@ export class TileGrid {
     }
   }
 
-  append(...tiles: Array<Tile>) {
+  push(...tiles: Array<Tile>) {
     for (const tile of tiles) {
       this.#tiles.push(tile);
 
       this.#placeTile(tile);
     }
+  }
+
+  pop() {
+    // TODO: Remove tile from map
+
+    this.#tiles.pop();
   }
 
   clear() {
