@@ -3,13 +3,13 @@ import Tiles from "@/components/Tiles.vue";
 import { type Tile } from "@/tile/Tile";
 
 const origTiles: Array<Tile> = [
-  // {
-  //   width: 1920,
-  //   height: 1080,
-  //   data: {
-  //     color: "#ff0000"
-  //   }
-  // },
+  {
+    width: 1920,
+    height: 1080,
+    data: {
+      color: "#ff0000"
+    }
+  },
   {
     width: 1080,
     height: 1920,
@@ -24,13 +24,13 @@ const origTiles: Array<Tile> = [
       color: "#0000ff"
     }
   },
-  // {
-  //   width: 4000,
-  //   height: 1080,
-  //   data: {
-  //     color: "#ff0000"
-  //   }
-  // },
+  {
+    width: 4000,
+    height: 1080,
+    data: {
+      color: "#ff0000"
+    }
+  },
   {
     width: 1080,
     height: 1080,
@@ -61,6 +61,8 @@ for (let i = 0; i <= 300; i++) {
     <Tiles
       :column-width="220"
       :row-height="10"
+      :row-gap="30"
+      :column-gap="10"
       :items="tiles"
       style="height: 100vh"
     >

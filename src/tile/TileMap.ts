@@ -7,25 +7,34 @@ export interface TileMapItem {
 }
 
 export class TileMap {
-  map: Array<TileMapItem> = [];
-  width: number;
+  #map: Array<TileMapItem> = [];
+  #columnsAmount: number;
+  #rowsAmount = 0;
 
-  constructor(width: number) {
-    this.width = width;
+  constructor(columnsAmount: number) {
+    this.#columnsAmount = columnsAmount;
+  }
+
+  get columnsAmount() {
+    return this.#columnsAmount;
+  }
+
+  get rowsAmount() {
+    return this.#rowsAmount;
   }
 
   getRows(row: number, count: number) {
     const tiles: TileMapItem[] = [];
     const indexes: boolean[] = [];
 
-    let index = row * this.width;
+    let index = row * this.#columnsAmount;
 
     for (let y = 0; y < count; y++) {
-      for (let x = 0; x < this.width; x++) {
-        const tile = this.map[index];
+      for (let x = 0; x < this.#columnsAmount; x++) {
+        const tile = this.#map[index];
 
         if (tile != null) {
-          const tileIndex = tile.row * this.width + tile.column;
+          const tileIndex = tile.row * this.#columnsAmount + tile.column;
 
           if (indexes[tileIndex] !== true) {
             tiles.push(tile);
@@ -41,11 +50,11 @@ export class TileMap {
   }
 
   get(column: number, row: number) {
-    if (column > this.width) throw new Error("Tile out of map");
+    if (column > this.#columnsAmount) throw new Error("Position out of map");
 
-    const index = row * this.width + column;
+    const index = row * this.#columnsAmount + column;
 
-    return this.map[index];
+    return this.#map[index];
   }
 
   put(
@@ -55,15 +64,18 @@ export class TileMap {
     rowSpan: number,
     data: any
   ) {
-    if (column + columnSpan > this.width) throw new Error("Tile out of map");
+    if (this.#columnsAmount === 0) return;
+
+    if (column + columnSpan > this.#columnsAmount)
+      throw new Error("Position out of map");
 
     for (let y = 0; y < rowSpan; y++) {
-      let index = (row + y) * this.width + column;
+      let index = (row + y) * this.#columnsAmount + column;
 
       for (let x = 0; x < columnSpan; x++) {
-        if (this.map[index]) throw new Error("Cell already contains tile");
+        if (this.#map[index]) throw new Error("Cell already contains tile");
 
-        this.map[index] = {
+        this.#map[index] = {
           row,
           column,
           columnSpan,
@@ -74,5 +86,9 @@ export class TileMap {
         index++;
       }
     }
+
+    row += rowSpan;
+
+    if (row > this.#rowsAmount) this.#rowsAmount = row;
   }
 }

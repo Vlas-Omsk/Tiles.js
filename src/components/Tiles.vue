@@ -7,15 +7,20 @@ import {
   reactive,
   shallowRef,
   ref,
-  nextTick
+  nextTick,
+  watch,
+  computed
 } from "vue";
 
 import { type Tile } from "@/tile/Tile";
-import { TileMap, type TileMapItem } from "@/tile/TileMap";
+import { type TileMapItem } from "@/tile/TileMap";
+import { TileGrid } from "@/tile/TileGrid";
 
 interface Props {
   columnWidth: number;
   rowHeight: number;
+  columnGap?: number;
+  rowGap?: number;
   items: Array<Tile>;
 }
 
@@ -24,19 +29,17 @@ interface View {
   data: TileMapItem;
 }
 
-const props = defineProps<Props>();
+const props = withDefaults(defineProps<Props>(), {
+  columnGap: 0,
+  rowGap: 0
+});
 
 const root = useTemplateRef("root");
 
 const currentColumnsAmount = shallowRef(0);
 const currentRowsAmount = shallowRef(0);
-let currentColumnWidth = 0;
 
-let map: TileMap;
-
-let columnsFreeRows: Array<number> = [];
-let nextColumn = 0;
-let nextItemIndex = 0;
+const grid = new TileGrid();
 
 const viewsPool = ref<View[]>([]);
 let hiddenViews: View[] = [];
@@ -44,48 +47,64 @@ let visibleViews: View[] = [];
 
 let renderedRowsRange = { top: 0, bottom: 0 };
 
+let nextItemIndex = 0;
+
+const realRowHeight = computed(() => props.rowHeight + props.rowGap * 1);
+
 function updateSize() {
   const previousColumnsAmount = currentColumnsAmount.value;
 
   const rect = root.value!.getBoundingClientRect();
 
   currentColumnsAmount.value = Math.floor(rect.width / props.columnWidth);
-  currentColumnWidth = rect.width / currentColumnsAmount.value;
+
+  let currentColumnWidth = rect.width / currentColumnsAmount.value;
 
   if (previousColumnsAmount === currentColumnsAmount.value) return;
 
   console.log("update size");
 
   hideAllViews();
-  resetGrid();
-  updateGrid();
 
-  let visibleRows = getVisibleRowsRange();
+  grid.resize(
+    currentColumnsAmount.value,
+    currentColumnWidth,
+    realRowHeight.value
+  );
 
-  visibleRows = expandRowsRange(visibleRows.top, visibleRows.bottom);
+  currentRowsAmount.value = grid.map.rowsAmount;
 
-  showViewsInRange(visibleRows.top, visibleRows.bottom);
+  let visibleRowsRange = getVisibleRowsRange();
+
+  visibleRowsRange = expandRowsRange(
+    visibleRowsRange.top,
+    visibleRowsRange.bottom
+  );
+
+  showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
 }
 
 function updatePosition() {
-  let visibleRows = getVisibleRowsRange();
+  let visibleRowsRange = getVisibleRowsRange();
 
   if (
     !(
-      renderedRowsRange.bottom - visibleRows.bottom < 1 ||
-      visibleRows.top - renderedRowsRange.top < 1
+      renderedRowsRange.bottom - visibleRowsRange.bottom < 1 ||
+      visibleRowsRange.top - renderedRowsRange.top < 1
     )
   )
     return;
 
   console.log("update position");
 
-  updateGrid();
   hideAllViews();
 
-  visibleRows = expandRowsRange(visibleRows.top, visibleRows.bottom);
+  visibleRowsRange = expandRowsRange(
+    visibleRowsRange.top,
+    visibleRowsRange.bottom
+  );
 
-  showViewsInRange(visibleRows.top, visibleRows.bottom);
+  showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
 }
 
 function expandRowsRange(top: number, bottom: number) {
@@ -105,8 +124,8 @@ function getVisibleRowsRange() {
   const bottom = top + window.innerHeight;
 
   return {
-    top: Math.floor(top / props.rowHeight),
-    bottom: Math.ceil(bottom / props.rowHeight)
+    top: Math.floor(top / realRowHeight.value),
+    bottom: Math.ceil(bottom / realRowHeight.value)
   };
 }
 
@@ -126,7 +145,7 @@ function showViewsInRange(topRow: number, bottomRow: number) {
     bottom: bottomRow
   };
 
-  const tiles = map.getRows(topRow, bottomRow - topRow);
+  const tiles = grid.map.getRows(topRow, bottomRow - topRow);
 
   for (const tile of tiles) {
     showView(tile);
@@ -151,72 +170,9 @@ function showView(data: TileMapItem) {
   visibleViews.push(view);
 }
 
-function resetGrid() {
-  map = new TileMap(currentColumnsAmount.value);
-  columnsFreeRows = [];
-  nextColumn = 0;
-  nextItemIndex = 0;
-}
+grid.append(...props.items);
 
-function updateGrid() {
-  while (nextItemIndex < props.items.length) {
-    const item = props.items[nextItemIndex];
-    putItem(item);
-    nextItemIndex++;
-  }
-}
-
-function putItem(item: Tile) {
-  const span = getSpan(item.width, item.height);
-
-  if (nextColumn + span.columns > currentColumnsAmount.value) nextColumn = 0;
-
-  let maxFreeRow = 0;
-
-  for (let x = 0; x < span.columns; x++) {
-    let freeRow = columnsFreeRows[x + nextColumn] ?? 0;
-
-    if (freeRow > maxFreeRow) maxFreeRow = freeRow;
-  }
-
-  map.put(nextColumn, maxFreeRow, span.columns, span.rows, item.data);
-
-  for (let x = 0; x < span.columns; x++) {
-    let column = nextColumn + x;
-
-    columnsFreeRows[column] = maxFreeRow + span.rows;
-  }
-
-  currentRowsAmount.value = Math.max(...columnsFreeRows.map((x) => x ?? 0));
-
-  nextColumn += span.columns;
-}
-
-function getSpan(width: number, height: number) {
-  let columns = 1;
-  let rows = Math.round(
-    ((height / width) * currentColumnWidth) / props.rowHeight
-  );
-
-  if (width > height) {
-    columns = Math.min(
-      Math.max(Math.round(width / height), 1),
-      currentColumnsAmount.value
-    );
-    rows = Math.round(
-      ((height / width) * (columns * currentColumnWidth)) / props.rowHeight
-    );
-  }
-
-  rows = Math.max(rows, 1);
-
-  console.log(rows, columns);
-
-  return {
-    columns,
-    rows
-  };
-}
+currentRowsAmount.value = grid.map.rowsAmount;
 
 let updateSizeTimeout: number;
 
@@ -233,6 +189,20 @@ onMounted(async () => {
     updatePosition();
   });
 });
+
+watch(
+  () => props.items,
+  (newValue) => {
+    for (; nextItemIndex < newValue.length; nextItemIndex++) {
+      const item = newValue[nextItemIndex];
+
+      grid.append(item);
+
+      currentRowsAmount.value = grid.map.rowsAmount;
+    }
+  },
+  { deep: true }
+);
 </script>
 
 <template>
@@ -241,7 +211,9 @@ onMounted(async () => {
     class="root"
     :style="{
       'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
-      'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`
+      'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`,
+      'column-gap': `${columnGap}px`,
+      'row-gap': `${rowGap}px`
     }"
   >
     <!-- Without this element, scrolling will be triggered when moving tiles -->
