@@ -94,20 +94,25 @@ function updateSize() {
     currentRowHeight.value
   );
 
-  let visibleRowsRange = getVisibleRowsRange();
+  const visibleRowsRange = getVisibleRowsRange();
 
-  visibleRowsRange = expandRowsRange(
+  const showRowsRange = expandRowsRange(
     visibleRowsRange.top,
     visibleRowsRange.bottom
   );
 
-  showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
+  showViewsInRange(
+    showRowsRange.top,
+    showRowsRange.bottom,
+    visibleRowsRange.top,
+    visibleRowsRange.bottom
+  );
 }
 
 function updatePosition() {
   if (root.value == null || wrapper.value == null) return;
 
-  let visibleRowsRange = getVisibleRowsRange();
+  const visibleRowsRange = getVisibleRowsRange();
 
   if (
     wrapper.value.scrollHeight -
@@ -130,12 +135,17 @@ function updatePosition() {
 
   hideAllViews();
 
-  visibleRowsRange = expandRowsRange(
+  const showRowsRange = expandRowsRange(
     visibleRowsRange.top,
     visibleRowsRange.bottom
   );
 
-  showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
+  showViewsInRange(
+    showRowsRange.top,
+    showRowsRange.bottom,
+    visibleRowsRange.top,
+    visibleRowsRange.bottom
+  );
 }
 
 function expandRowsRange(top: number, bottom: number) {
@@ -154,9 +164,14 @@ function getVisibleRowsRange() {
   const top = wrapper.value!.scrollTop;
   const bottom = top + wrapper.value!.clientHeight;
 
+  const topRows = Math.floor(top / currentRowHeight.value);
+  const bottomRows = Math.ceil(bottom / currentRowHeight.value);
+
+  const visibleRows = bottomRows - topRows;
+
   return {
-    top: Math.floor(top / currentRowHeight.value),
-    bottom: Math.ceil(bottom / currentRowHeight.value)
+    top: Math.min(topRows, grid.map.rowsAmount - visibleRows),
+    bottom: Math.min(bottomRows, grid.map.rowsAmount)
   };
 }
 
@@ -170,13 +185,16 @@ function hideAllViews() {
   visibleViews = [];
 }
 
-function showViewsInRange(topRow: number, bottomRow: number) {
+function showViewsInRange(
+  topRow: number,
+  bottomRow: number,
+  visibleTopRow: number,
+  visibleBottomRow: number
+) {
   renderedRowsRange = {
     top: topRow,
     bottom: bottomRow
   };
-
-  const visibleRowsRange = getVisibleRowsRange();
 
   const tiles = grid.map.getRows(topRow, bottomRow - topRow);
 
@@ -184,7 +202,7 @@ function showViewsInRange(topRow: number, bottomRow: number) {
   bottomRowsMargin.value =
     grid.map.rowsAmount -
     topRowsMargin.value -
-    (visibleRowsRange.bottom - visibleRowsRange.top);
+    (visibleBottomRow - visibleTopRow);
 
   visibleRowsAmount.value = bottomRow - topRowsMargin.value;
 
@@ -274,14 +292,19 @@ watch(
       lastItemsLength = newValue.length;
     }
 
-    let visibleRowsRange = getVisibleRowsRange();
+    const visibleRowsRange = getVisibleRowsRange();
 
-    visibleRowsRange = expandRowsRange(
+    const showRowsRange = expandRowsRange(
       visibleRowsRange.top,
       visibleRowsRange.bottom
     );
 
-    showViewsInRange(visibleRowsRange.top, visibleRowsRange.bottom);
+    showViewsInRange(
+      showRowsRange.top,
+      showRowsRange.bottom,
+      visibleRowsRange.top,
+      visibleRowsRange.bottom
+    );
   },
   {
     deep: true
