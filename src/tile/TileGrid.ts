@@ -1,4 +1,4 @@
-import { TileMap } from "@/tile/TileMap";
+import { TileMap, type TileMapItem } from "@/tile/TileMap";
 import { type Tile } from "@/tile/Tile";
 
 export class TileGrid {
@@ -6,37 +6,56 @@ export class TileGrid {
   #columnsAmount = 0;
   #columnWidth = 0;
   #rowHeight = 0;
+  #indexItemMap: Array<TileMapItem> = [];
   #tiles: Array<Tile> = [];
-  #columnsFreeRows: Array<number> = [];
 
   get map() {
     return this.#map;
   }
 
   resize(columnsAmount: number, columnWidth: number, rowHeight: number) {
+    if (columnsAmount < 0) throw new Error("Columns amount must be positive");
+
+    if (columnWidth < 0) throw new Error("Column width must be positive");
+
+    if (rowHeight < 0) throw new Error("Row height must be positive");
+
     this.#columnsAmount = columnsAmount;
     this.#columnWidth = columnWidth;
     this.#rowHeight = rowHeight;
 
     this.#reset();
 
+    if (this.#columnsAmount === 0) return;
+
+    let index = 0;
+
     for (const tile of this.#tiles) {
-      this.#placeTile(tile);
+      this.#indexItemMap[index++] = this.#placeTile(tile);
     }
   }
 
   push(...tiles: Array<Tile>) {
     for (const tile of tiles) {
-      this.#tiles.push(tile);
+      const index = this.#tiles.push(tile) - 1;
 
-      this.#placeTile(tile);
+      if (this.#columnsAmount === 0) continue;
+
+      this.#indexItemMap[index] = this.#placeTile(tile);
     }
   }
 
   pop() {
-    // TODO: Remove tile from map
+    if (this.#tiles.pop() == null) return;
 
-    this.#tiles.pop();
+    const mapItem = this.#indexItemMap.pop()!;
+
+    this.#map.remove(
+      mapItem.column,
+      mapItem.row,
+      mapItem.columnSpan,
+      mapItem.rowSpan
+    );
   }
 
   clear() {
@@ -47,51 +66,48 @@ export class TileGrid {
 
   #reset() {
     this.#map = new TileMap(this.#columnsAmount);
-    this.#columnsFreeRows = [];
-
-    for (let i = 0; i < this.#columnsAmount; i++) this.#columnsFreeRows.push(0);
+    this.#indexItemMap = [];
   }
 
   #placeTile(item: Tile) {
-    if (this.#columnsAmount === 0) return;
-
     const span = this.#measureTile(item.width, item.height);
 
     const nextColumn = this.#findColumnForTile(span.columns);
 
-    let maxFreeRow = 0;
+    let maxVertex = 0;
 
     for (let x = 0; x < span.columns; x++) {
-      const freeRow = this.#columnsFreeRows[x + nextColumn] ?? 0;
+      const columnVertex = this.#map.columnVertexMap[x + nextColumn] ?? 0;
 
-      if (freeRow > maxFreeRow) maxFreeRow = freeRow;
+      if (columnVertex > maxVertex) maxVertex = columnVertex;
     }
 
-    this.#map.put(nextColumn, maxFreeRow, span.columns, span.rows, item.data);
+    const mapItem = this.#map.put(
+      nextColumn,
+      maxVertex,
+      span.columns,
+      span.rows,
+      item.data
+    );
 
-    for (let x = 0; x < span.columns; x++) {
-      const column = nextColumn + x;
-
-      this.#columnsFreeRows[column] = maxFreeRow + span.rows;
-    }
+    return mapItem;
   }
 
   #findColumnForTile(columnSpan: number) {
-    const sortedColumnsFreeRows = [...this.#columnsFreeRows.entries()].sort(
+    const sortedColumnVertexes = [...this.#map.columnVertexMap.entries()].sort(
       (a, b) => b[1] - a[1]
     );
 
     let lowestColumn = 0;
-    let lowestColumnFreeRow = sortedColumnsFreeRows[0][1];
+    let lowestColumnVertex = sortedColumnVertexes[0][1];
 
-    for (const columnFreeRow of sortedColumnsFreeRows) {
+    for (const columnVertex of sortedColumnVertexes) {
       if (
-        columnFreeRow[0] + columnSpan <= this.#columnsAmount &&
-        (columnFreeRow[1] < lowestColumnFreeRow ||
-          columnFreeRow[0] < lowestColumn)
+        columnVertex[0] + columnSpan <= this.#columnsAmount &&
+        (columnVertex[1] < lowestColumnVertex || columnVertex[0] < lowestColumn)
       ) {
-        lowestColumn = columnFreeRow[0];
-        lowestColumnFreeRow = columnFreeRow[1];
+        lowestColumn = columnVertex[0];
+        lowestColumnVertex = columnVertex[1];
       }
     }
 

@@ -42,11 +42,13 @@ const root = useTemplateRef("root");
 const currentColumnsAmount = shallowRef(0);
 const currentRowsAmount = shallowRef(0);
 
-const currentRowHeight = computed(() => props.rowHeight + props.rowGap * 1);
+const currentRowHeight = computed(() => props.rowHeight + props.rowGap);
 
 const grid = new TileGrid();
 
 grid.push(...props.items);
+
+let lastItemsLength = props.items.length;
 
 const viewsPool = ref<View[]>([]);
 let hiddenViews: View[] = [];
@@ -136,8 +138,8 @@ function expandRowsRange(top: number, bottom: number) {
   bottom = bottom + visibleHeight;
 
   return {
-    top,
-    bottom
+    top: Math.max(top, 0),
+    bottom: Math.min(bottom, grid.map.rowsAmount)
   };
 }
 
@@ -219,13 +221,25 @@ onBeforeUnmount(() => {
 
 watch(
   () => props.items,
-  (newValue) => {
-    // TODO: push only new items and dont rebuild all grid
-
+  (newValue, oldValue) => {
     hideAllViews();
 
-    grid.clear();
-    grid.push(...newValue);
+    if (newValue === oldValue) {
+      while (newValue.length > lastItemsLength) {
+        const item = newValue[lastItemsLength++];
+
+        grid.push(item);
+      }
+
+      while (newValue.length < lastItemsLength) {
+        grid.pop();
+
+        lastItemsLength--;
+      }
+    } else {
+      grid.clear();
+      grid.push(...newValue);
+    }
 
     currentRowsAmount.value = grid.map.rowsAmount;
 

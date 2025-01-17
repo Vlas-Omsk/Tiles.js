@@ -3,43 +3,43 @@ import Tiles from "@/components/Tiles.vue";
 import { type Tile } from "@/tile/Tile";
 import { reactive } from "vue";
 
-// const origTiles: Array<Tile> = [
-//   {
-//     width: 1920,
-//     height: 1080,
-//     data: {
-//       color: "#ff0000"
-//     }
-//   },
-//   {
-//     width: 1080,
-//     height: 1920,
-//     data: {
-//       color: "#00ff00"
-//     }
-//   },
-//   {
-//     width: 1080,
-//     height: 1080,
-//     data: {
-//       color: "#0000ff"
-//     }
-//   },
-//   {
-//     width: 4000,
-//     height: 1080,
-//     data: {
-//       color: "#ff0000"
-//     }
-//   },
-//   {
-//     width: 1080,
-//     height: 1080,
-//     data: {
-//       color: "#0000ff"
-//     }
-//   }
-// ];
+const origTiles: Array<Tile> = [
+  {
+    width: 1920,
+    height: 1080,
+    data: {
+      src: "#ff0000"
+    }
+  },
+  {
+    width: 1080,
+    height: 1920,
+    data: {
+      src: "#00ff00"
+    }
+  },
+  {
+    width: 1080,
+    height: 1080,
+    data: {
+      src: "#0000ff"
+    }
+  },
+  {
+    width: 4000,
+    height: 1080,
+    data: {
+      src: "#ff0000"
+    }
+  },
+  {
+    width: 1080,
+    height: 1080,
+    data: {
+      src: "#0000ff"
+    }
+  }
+];
 
 const tiles = reactive<Tile[]>([]);
 
@@ -65,32 +65,38 @@ const tiles = reactive<Tile[]>([]);
 // }
 
 function addTiles() {
-  tiles.push(
-    {
-      width: 336,
-      height: 433,
-      data: {
-        src: "/images/p-1.jpg"
-      }
-    },
-    {
-      width: 336,
-      height: 300,
-      data: {
-        src: "/images/p-2.jpg"
-      }
-    },
-    {
-      width: 336,
-      height: 488,
-      data: {
-        src: "/images/p-3.jpg"
-      }
-    }
-  );
+  // tiles.push(
+  //   {
+  //     width: 336,
+  //     height: 433,
+  //     data: {
+  //       src: "url(/images/p-1.jpg)"
+  //     }
+  //   },
+  //   {
+  //     width: 336,
+  //     height: 300,
+  //     data: {
+  //       src: "url(/images/p-2.jpg)"
+  //     }
+  //   },
+  //   {
+  //     width: 336,
+  //     height: 488,
+  //     data: {
+  //       src: "url(/images/p-3.jpg)"
+  //     }
+  //   }
+  // );
+
+  tiles.push(...origTiles);
 }
 
 for (let i = 0; i < 100; i++) addTiles();
+
+setTimeout(() => {
+  tiles.pop();
+}, 10000);
 </script>
 
 <template>
@@ -102,7 +108,6 @@ for (let i = 0; i < 100; i++) addTiles();
       :column-gap="10"
       :row-gap="10"
       style="height: 100vh"
-      @on-scroll-near-end="addTiles"
     >
       <template #default="data">
         <div
@@ -115,7 +120,7 @@ for (let i = 0; i < 100; i++) addTiles();
             border-radius: 10px;
           "
           :style="{
-            'background-image': `url(${data.src})`
+            background: data.src
           }"
         >
           {{ data }}
