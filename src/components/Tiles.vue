@@ -27,7 +27,7 @@ interface Props {
 
 interface View {
   visible: boolean;
-  data: TileMapItem;
+  item: TileMapItem;
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -176,18 +176,18 @@ function showViewsInRange(topRow: number, bottomRow: number) {
   }
 }
 
-function showView(data: TileMapItem) {
+function showView(item: TileMapItem) {
   let view = hiddenViews.pop();
 
   if (!view) {
     view = reactive({
       visible: true,
-      data
+      item
     });
 
     viewsPool.value.push(view);
   } else {
-    view.data = data;
+    view.item = item;
     view.visible = true;
   }
 
@@ -225,6 +225,8 @@ watch(
     hideAllViews();
 
     if (newValue === oldValue) {
+      console.log("update grid");
+
       while (newValue.length > lastItemsLength) {
         const item = newValue[lastItemsLength++];
 
@@ -237,6 +239,8 @@ watch(
         lastItemsLength--;
       }
     } else {
+      console.log("rebuild grid");
+
       grid.clear();
       grid.push(...newValue);
     }
@@ -269,39 +273,48 @@ watch(
 </script>
 
 <template>
-  <div
-    ref="root"
-    class="root"
-    :style="{
-      'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
-      'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`,
-      'column-gap': `${columnGap}px`,
-      'row-gap': `${rowGap}px`
-    }"
-  >
-    <!-- Without this element, scrolling will be triggered when moving tiles -->
+  <div class="wrapper">
     <div
+      ref="root"
+      class="root"
       :style="{
-        'grid-column': `1 / ${currentColumnsAmount + 1}`,
-        'grid-row': `1 / ${currentRowsAmount + 1}`
+        'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
+        'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`,
+        'column-gap': `${columnGap}px`,
+        'row-gap': `${rowGap}px`
       }"
-    ></div>
-
-    <TileView
-      v-for="view of viewsPool"
-      :visible="view.visible"
-      :data="view.data"
     >
-      <template #default="data">
-        <slot v-bind="data"></slot>
-      </template>
-    </TileView>
+      <!-- Without this element, scrolling will be triggered when moving tiles -->
+      <div
+        :style="{
+          'grid-column': `1 / ${currentColumnsAmount + 1}`,
+          'grid-row': `1 / ${currentRowsAmount + 1}`
+        }"
+      ></div>
+
+      <TileView
+        v-for="view of viewsPool"
+        :visible="view.visible"
+        :item="view.item"
+      >
+        <template #default="data">
+          <slot v-bind="data"></slot>
+        </template>
+      </TileView>
+    </div>
   </div>
 </template>
 
 <style lang="css" scoped>
+.wrapper {
+  display: flex;
+  height: 100%;
+}
+
 .root {
   display: grid;
   overflow: auto;
+  height: 100%;
+  width: 100%;
 }
 </style>

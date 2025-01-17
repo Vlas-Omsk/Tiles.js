@@ -3,7 +3,7 @@ import type { TileMapItem } from "@/tile/TileMap";
 
 interface Props {
   visible: boolean;
-  data: TileMapItem;
+  item: TileMapItem;
 }
 
 defineProps<Props>();
@@ -13,10 +13,10 @@ defineProps<Props>();
   <div
     v-if="visible"
     :style="{
-      'grid-column': `${data.column + 1} / ${data.column + data.columnSpan + 1}`,
-      'grid-row': `${data.row + 1} / ${data.row + data.rowSpan + 1}`
+      'grid-column': `${item.column + 1} / ${item.column + item.columnSpan + 1}`,
+      'grid-row': `${item.row + 1} / ${item.row + item.rowSpan + 1}`
     }"
   >
-    <slot v-bind="data.data"></slot>
+    <slot v-bind="item.data"></slot>
   </div>
 </template>
