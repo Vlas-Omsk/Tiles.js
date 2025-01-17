@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import type { TileMapItem } from "@/tile/TileMap";
-
-interface Props {
+export interface Props {
   visible: boolean;
-  item: TileMapItem;
+  row: number;
+  column: number;
+  rowSpan: number;
+  columnSpan: number;
+  data: any;
 }
 
 defineProps<Props>();
@@ -13,10 +15,10 @@ defineProps<Props>();
   <div
     v-if="visible"
     :style="{
-      'grid-column': `${item.column + 1} / ${item.column + item.columnSpan + 1}`,
-      'grid-row': `${item.row + 1} / ${item.row + item.rowSpan + 1}`
+      'grid-column': `${column + 1} / ${column + columnSpan + 1}`,
+      'grid-row': `${row + 1} / ${row + rowSpan + 1}`
     }"
   >
-    <slot v-bind="item.data"></slot>
+    <slot v-bind="data"></slot>
   </div>
 </template>

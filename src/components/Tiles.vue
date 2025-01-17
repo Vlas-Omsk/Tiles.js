@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import TileView from "@/components/TileView.vue";
+import TileView, {
+  type Props as TileViewProps
+} from "@/components/TileView.vue";
 
 import {
   useTemplateRef,
@@ -25,11 +27,6 @@ interface Props {
   items: Array<Tile>;
 }
 
-interface View {
-  visible: boolean;
-  item: TileMapItem;
-}
-
 const props = withDefaults(defineProps<Props>(), {
   columnGap: 0,
   rowGap: 0
@@ -38,11 +35,21 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits(["onScrollNearEnd"]);
 
 const root = useTemplateRef("root");
+const wrapper = useTemplateRef("wrapper");
 
 const currentColumnsAmount = shallowRef(0);
-const currentRowsAmount = shallowRef(0);
 
 const currentRowHeight = computed(() => props.rowHeight + props.rowGap);
+
+const topRowsMargin = shallowRef(0);
+const bottomRowsMargin = shallowRef(0);
+
+const visibleRowsAmount = shallowRef(0);
+
+const topMargin = computed(() => topRowsMargin.value * currentRowHeight.value);
+const bottomMargin = computed(
+  () => bottomRowsMargin.value * currentRowHeight.value - props.rowGap
+);
 
 const grid = new TileGrid();
 
@@ -50,17 +57,17 @@ grid.push(...props.items);
 
 let lastItemsLength = props.items.length;
 
-const viewsPool = ref<View[]>([]);
-let hiddenViews: View[] = [];
-let visibleViews: View[] = [];
+const viewsPool = ref<TileViewProps[]>([]);
+let hiddenViews: TileViewProps[] = [];
+let visibleViews: TileViewProps[] = [];
 
 let renderedRowsRange = { top: 0, bottom: 0 };
 let renderedGap = { columnGap: 0, rowGap: 0 };
 
 function updateSize() {
-  if (root.value == null) return;
+  if (root.value == null || wrapper.value == null) return;
 
-  const rect = root.value.getBoundingClientRect();
+  const rect = wrapper.value.getBoundingClientRect();
 
   const newColumnsAmount = Math.floor(rect.width / props.columnWidth);
   const newColumnWidth = rect.width / newColumnsAmount;
@@ -87,8 +94,6 @@ function updateSize() {
     currentRowHeight.value
   );
 
-  currentRowsAmount.value = grid.map.rowsAmount;
-
   let visibleRowsRange = getVisibleRowsRange();
 
   visibleRowsRange = expandRowsRange(
@@ -100,13 +105,15 @@ function updateSize() {
 }
 
 function updatePosition() {
-  if (root.value == null) return;
+  if (root.value == null || wrapper.value == null) return;
 
   let visibleRowsRange = getVisibleRowsRange();
 
   if (
-    root.value.scrollHeight - root.value.clientHeight - root.value.scrollTop <
-    root.value.clientHeight
+    wrapper.value.scrollHeight -
+      wrapper.value.clientHeight -
+      wrapper.value.scrollTop <
+    wrapper.value.clientHeight
   ) {
     emit("onScrollNearEnd");
   }
@@ -144,8 +151,8 @@ function expandRowsRange(top: number, bottom: number) {
 }
 
 function getVisibleRowsRange() {
-  const top = root.value!.scrollTop;
-  const bottom = top + root.value!.clientHeight;
+  const top = wrapper.value!.scrollTop;
+  const bottom = top + wrapper.value!.clientHeight;
 
   return {
     top: Math.floor(top / currentRowHeight.value),
@@ -169,7 +176,17 @@ function showViewsInRange(topRow: number, bottomRow: number) {
     bottom: bottomRow
   };
 
+  const visibleRowsRange = getVisibleRowsRange();
+
   const tiles = grid.map.getRows(topRow, bottomRow - topRow);
+
+  topRowsMargin.value = Math.min(...tiles.map((x) => x.row));
+  bottomRowsMargin.value =
+    grid.map.rowsAmount -
+    topRowsMargin.value -
+    (visibleRowsRange.bottom - visibleRowsRange.top);
+
+  visibleRowsAmount.value = bottomRow - topRowsMargin.value;
 
   for (const tile of tiles) {
     showView(tile);
@@ -180,14 +197,22 @@ function showView(item: TileMapItem) {
   let view = hiddenViews.pop();
 
   if (!view) {
-    view = reactive({
+    view = reactive<TileViewProps>({
       visible: true,
-      item
+      column: item.column,
+      columnSpan: item.columnSpan,
+      row: item.row - topRowsMargin.value,
+      rowSpan: item.rowSpan,
+      data: item.data
     });
 
     viewsPool.value.push(view);
   } else {
-    view.item = item;
+    view.column = item.column;
+    view.columnSpan = item.columnSpan;
+    view.row = item.row - topRowsMargin.value;
+    view.rowSpan = item.rowSpan;
+    view.data = item.data;
     view.visible = true;
   }
 
@@ -211,12 +236,12 @@ onMounted(async () => {
   updateSize();
 
   window.addEventListener("resize", onWindowResize);
-  root.value!.addEventListener("scroll", onRootScroll);
+  wrapper.value!.addEventListener("scroll", onRootScroll);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener("resize", onWindowResize);
-  root.value!.removeEventListener("scroll", onRootScroll);
+  wrapper.value!.removeEventListener("scroll", onRootScroll);
 });
 
 watch(
@@ -249,8 +274,6 @@ watch(
       lastItemsLength = newValue.length;
     }
 
-    currentRowsAmount.value = grid.map.rowsAmount;
-
     let visibleRowsRange = getVisibleRowsRange();
 
     visibleRowsRange = expandRowsRange(
@@ -277,30 +300,28 @@ watch(
 </script>
 
 <template>
-  <div class="wrapper">
+  <div ref="wrapper" class="wrapper">
     <div
       ref="root"
       class="root"
       :style="{
         'grid-template-columns': `repeat(${currentColumnsAmount}, 1fr)`,
-        'grid-template-rows': `repeat(${currentRowsAmount}, ${rowHeight}px)`,
+        'grid-template-rows': `repeat(${visibleRowsAmount}, ${rowHeight}px)`,
         'column-gap': `${columnGap}px`,
-        'row-gap': `${rowGap}px`
+        'row-gap': `${rowGap}px`,
+        'margin-top': `${topMargin}px`,
+        'margin-bottom': `${bottomMargin}px`
       }"
     >
       <!-- Without this element, scrolling will be triggered when moving tiles -->
       <div
         :style="{
           'grid-column': `1 / ${currentColumnsAmount + 1}`,
-          'grid-row': `1 / ${currentRowsAmount + 1}`
+          'grid-row': `1 / ${visibleRowsAmount + 1}`
         }"
       ></div>
 
-      <TileView
-        v-for="view of viewsPool"
-        :visible="view.visible"
-        :item="view.item"
-      >
+      <TileView v-for="view of viewsPool" v-bind="view">
         <template #default="data">
           <slot v-bind="data"></slot>
         </template>
@@ -312,12 +333,12 @@ watch(
 <style lang="css" scoped>
 .wrapper {
   display: flex;
+  overflow: auto;
   height: 100%;
 }
 
 .root {
   display: grid;
-  overflow: auto;
   height: 100%;
   width: 100%;
 }
