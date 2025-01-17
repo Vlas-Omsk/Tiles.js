@@ -3,7 +3,7 @@ import Tiles from "@/components/Tiles.vue";
 import { type Tile } from "@/tile/Tile";
 import { reactive } from "vue";
 
-const origTiles: Array<Tile> = [
+const tilesPack1: Array<Tile> = [
   {
     width: 1920,
     height: 1080,
@@ -41,62 +41,41 @@ const origTiles: Array<Tile> = [
   }
 ];
 
+const tilesPack2: Array<Tile> = [
+  {
+    width: 336,
+    height: 433,
+    data: {
+      src: "url(/images/p-1.jpg)"
+    }
+  },
+  {
+    width: 336,
+    height: 300,
+    data: {
+      src: "url(/images/p-2.jpg)"
+    }
+  },
+  {
+    width: 336,
+    height: 488,
+    data: {
+      src: "url(/images/p-3.jpg)"
+    }
+  }
+];
+
 const tiles = reactive<Tile[]>([]);
 
-// let i = 0;
-
-// function addTiles() {
-//   i++;
-
-//   if (i > 300) return;
-
-//   for (let tile of origTiles) {
-//     const newTile = Object.assign({}, tile);
-
-//     newTile.data = {
-//       color:
-//         "#" + ((Math.random() * 0xffffff) << 0).toString(16).padStart(6, "0")
-//     };
-
-//     tiles.push(newTile);
-//   }
-
-//   //setTimeout(addTiles, 1000);
-// }
-
 function addTiles() {
-  // tiles.push(
-  //   {
-  //     width: 336,
-  //     height: 433,
-  //     data: {
-  //       src: "url(/images/p-1.jpg)"
-  //     }
-  //   },
-  //   {
-  //     width: 336,
-  //     height: 300,
-  //     data: {
-  //       src: "url(/images/p-2.jpg)"
-  //     }
-  //   },
-  //   {
-  //     width: 336,
-  //     height: 488,
-  //     data: {
-  //       src: "url(/images/p-3.jpg)"
-  //     }
-  //   }
-  // );
-
-  tiles.push(...origTiles);
+  tiles.push(...tilesPack2);
 }
 
 for (let i = 0; i < 100; i++) addTiles();
 
-setTimeout(() => {
-  tiles.pop();
-}, 10000);
+// setTimeout(() => {
+//   tiles.pop();
+// }, 10000);
 </script>
 
 <template>
@@ -108,6 +87,7 @@ setTimeout(() => {
       :column-gap="10"
       :row-gap="10"
       style="flex: 1"
+      @--on-scroll-near-end="addTiles"
     >
       <template #default="data">
         <div
