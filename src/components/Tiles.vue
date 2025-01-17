@@ -228,9 +228,11 @@ watch(
       console.log("update grid");
 
       while (newValue.length > lastItemsLength) {
-        const item = newValue[lastItemsLength++];
+        const item = newValue[lastItemsLength];
 
         grid.push(item);
+
+        lastItemsLength++;
       }
 
       while (newValue.length < lastItemsLength) {
@@ -243,6 +245,8 @@ watch(
 
       grid.clear();
       grid.push(...newValue);
+
+      lastItemsLength = newValue.length;
     }
 
     currentRowsAmount.value = grid.map.rowsAmount;
