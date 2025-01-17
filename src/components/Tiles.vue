@@ -334,7 +334,6 @@ watch(
 .wrapper {
   display: flex;
   overflow: auto;
-  height: 100%;
 }
 
 .root {

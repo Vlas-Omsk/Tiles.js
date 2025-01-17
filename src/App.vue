@@ -107,7 +107,7 @@ setTimeout(() => {
       :items="tiles"
       :column-gap="10"
       :row-gap="10"
-      style="height: 100vh"
+      style="flex: 1"
     >
       <template #default="data">
         <div
@@ -132,7 +132,8 @@ setTimeout(() => {
 
 <style lang="scss" scoped>
 .main {
+  display: flex;
   width: 100%;
-  height: 100%;
+  height: 100vh;
 }
 </style>
